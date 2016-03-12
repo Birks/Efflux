@@ -12,6 +12,8 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
@@ -83,19 +85,23 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
         private Time mTime;
 
+        private Paint newTimePaint;
+        private Paint newTimeAmbientPaint;
+        private Paint newTimeBgrPaint;
         private Paint mBackgroundPaint;
         private Paint mGrowingCirclePaint;
         private Paint mGrayGrowingCirclePaint;
         private Paint mQuarterPaint;
         private Paint mHalfPaint;
-        private Paint mGrayBackgroundPaint;
 
         private boolean mAmbient;
 
         private Bitmap mBackgroundBitmap;
-        private Bitmap hourBitmap;
-        private Bitmap hourBackground;
-        private Bitmap grayHourBitmap;
+
+        private Point a;
+        private Point b;
+        private Point c;
+        private Path path;
 
         private int mWidth;
         private int mHeight;
@@ -133,19 +139,31 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             mBackgroundPaint.setFilterBitmap(true);
 
 
-            // Gray background
-            mGrayBackgroundPaint = new Paint();
-            ColorMatrix colorMatrix = new ColorMatrix();
-            colorMatrix.setSaturation(0);
-            ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
-            mGrayBackgroundPaint.setColorFilter(filter);
+            // New red time
+            newTimePaint = new Paint();
+            newTimePaint.setStrokeWidth(0);
+            newTimePaint.setColor(Color.parseColor(GOLD));
+            newTimePaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            newTimePaint.setAntiAlias(true);
+
+            // New gray time
+            newTimeAmbientPaint = new Paint();
+            newTimeAmbientPaint.setStrokeWidth(0);
+            newTimeAmbientPaint.setColor(Color.parseColor(GRAY));
+            newTimeAmbientPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            newTimeAmbientPaint.setAntiAlias(false);
+
+
+            // New BLACK MIDs
+            newTimeBgrPaint = new Paint();
+            newTimeBgrPaint.setStrokeWidth(0);
+            newTimeBgrPaint.setColor(Color.BLACK);
+            newTimeBgrPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            newTimeBgrPaint.setAntiAlias(true);
 
 
             // Decoding the png images to bitmap object
-            hourBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.filledhour);
-            hourBackground = BitmapFactory.decodeResource(getResources(), R.drawable.blackhour);
             mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.custom_background);
-            grayHourBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.filledhour_gray);
 
             // Properties of the growing filled circle
             mGrowingCirclePaint = new Paint();
@@ -229,23 +247,25 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             mCenterY = mHeight / 2f;
             mScale = ((float) width) / (float) mBackgroundBitmap.getWidth();
 
+            // setting the Path
+
+            a = new Point((int) mCenterX, (int) mCenterY);
+            b = new Point((mWidth / 2) - 27, mHeight);
+            c = new Point((mWidth / 2) + 27, mHeight);
+
+            path = new Path();
+            path.setFillType(Path.FillType.EVEN_ODD);
+            path.moveTo((int) mCenterX, (int) mCenterY);
+            path.lineTo(a.x, a.y);
+            path.lineTo(b.x, b.y);
+            path.lineTo(c.x, c.y);
+            path.close();
+
 
             // Scaling the images
             mBackgroundBitmap = Bitmap.createScaledBitmap(mBackgroundBitmap,
                     (int) (mBackgroundBitmap.getWidth() * mScale),
                     (int) (mBackgroundBitmap.getHeight() * mScale), true);
-
-            hourBitmap = Bitmap.createScaledBitmap(hourBitmap,
-                    (int) (hourBitmap.getWidth() * mScale),
-                    (int) (hourBitmap.getHeight() * mScale), true);
-
-            grayHourBitmap = Bitmap.createScaledBitmap(grayHourBitmap,
-                    (int) (grayHourBitmap.getWidth() * mScale),
-                    (int) (grayHourBitmap.getHeight() * mScale), true);
-
-            hourBackground = Bitmap.createScaledBitmap(hourBackground,
-                    (int) (hourBackground.getWidth() * mScale),
-                    (int) (hourBackground.getHeight() * mScale), true);
 
         }
 
@@ -258,7 +278,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             canvas.drawBitmap(mBackgroundBitmap, 0, 0, mBackgroundPaint);
 
 
-            // mWidth / 2 = Radius, the rest is converting the seconds in a 0-1 interval
+            // Milliseconds drawing,  mWidth / 2 = Radius, the rest is converting the seconds in a 0-1 interval
             if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
                 canvas.drawCircle(mCenterX, mCenterY, (float) (((mWidth) / 2) * ((((mTime.minute * (60)) + mTime.second) * 0.027777778) / 100)), mGrayGrowingCirclePaint);
             } else {
@@ -266,44 +286,51 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             }
 
 
-            // Drawing the background bitmaps
-            // Divide the current hour from 12
-            // if statement is for the 12 hour bug
-            for (int i = 1; i <= (12 - (mTime.hour % 12)); ++i) {
-                canvas.save();
-                int shift = i;
-
-                if (i == 12) {
-                    shift = 11;
-                    canvas.rotate(((30) * (shift + 6)) + 21 + ((mTime.hour + 1) * 30), mCenterX, mCenterY); //
-
-                } else {
-                    canvas.rotate(((30) * (shift + 6)) + 7 + ((mTime.hour + 1) * 30), mCenterX, mCenterY); //
-
-                }
-
-                canvas.drawBitmap(hourBackground, mCenterX, mCenterY, mBackgroundPaint);
-                canvas.restore();
-
-            }
-
-
-            // Drawing the bitmaps of the hours
+            // Drawing the hour lines
             for (int i = 1; i <= (mTime.hour % 12); ++i) {
                 canvas.save();
                 // A hour is 30 degree, i+6 is because it starts at 6, 23 is the shift because it doesn't start at the middle
-                canvas.rotate(((30) * (i + 6)) + 23, mCenterX, mCenterY);
+                canvas.rotate(((30) * (i + 6)), mCenterX, mCenterY);
 
                 // Ambient mode real deal
                 if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
-                    canvas.drawBitmap(grayHourBitmap, mCenterX, mCenterY, mGrayBackgroundPaint);
+                    canvas.drawPath(path, newTimeAmbientPaint);
                 } else {
-                    canvas.drawBitmap(hourBitmap, mCenterX, mCenterY, mBackgroundPaint);
+                    canvas.drawPath(path, newTimePaint);
                 }
 
                 canvas.restore();
 
             }
+
+            // Drawing black lines between hours
+            for (int i = 1; i <= 12; ++i) { // Was hour%12 originally
+                canvas.save();
+                // A hour is 30 degree, i+6 is because it starts at 6, 23 is the shift because it doesn't start at the middle
+                canvas.rotate(((30) * (i + 6)) + 15, mCenterX, mCenterY);
+
+                // Ambient mode real deal
+                if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
+                    canvas.drawPath(path, newTimeBgrPaint);
+                } else {
+                    canvas.drawPath(path, newTimeBgrPaint);
+                }
+
+                canvas.restore();
+
+            }
+
+            // Drawing the leftover black part after the current hour
+            for (int i = 1; i <= ((11 - (mTime.hour % 12))); ++i) {
+                canvas.save();
+
+                canvas.rotate(((30) * ((mTime.hour % 12) + (i + 7))), mCenterX, mCenterY);
+
+                canvas.drawPath(path, newTimeBgrPaint);
+                canvas.restore();
+
+            }
+
 
             // Draw the dashed circles
             canvas.save();
