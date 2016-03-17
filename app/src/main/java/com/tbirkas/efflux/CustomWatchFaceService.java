@@ -8,8 +8,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -20,11 +18,10 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.text.format.Time;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 
+import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -72,8 +69,10 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         private final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                mTime.clear(intent.getStringExtra("time-zone"));
-                mTime.setToNow();
+//                mTime.clear(intent.getStringExtra("time-zone"));
+//                mTime.setToNow();
+                mCalendar.setTimeZone(TimeZone.getDefault());
+                invalidate();
             }
         };
 
@@ -83,7 +82,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         private static final float STROKE_WIDTH = 2f;
         private static final int SHADOW_RADIUS = 6;
 
-        private Time mTime;
+        //private Time mTime;
 
         private Paint newTimePaint;
         private Paint newTimeAmbientPaint;
@@ -117,6 +116,8 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
+
+        private Calendar mCalendar;
 
 
         @Override
@@ -200,7 +201,9 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             mHalfPaint.setShadowLayer(SHADOW_RADIUS, 0, 0, Color.BLACK);
             mHalfPaint.setStyle(Paint.Style.STROKE);
 
-            mTime = new Time();
+            //mTime = new Time();
+            mCalendar = Calendar.getInstance();
+
         }
 
         @Override
@@ -272,7 +275,8 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
-            mTime.setToNow();
+            //mTime.setToNow();
+            mCalendar.setTimeInMillis(System.currentTimeMillis());
 
             // Draw the background.
             canvas.drawBitmap(mBackgroundBitmap, 0, 0, mBackgroundPaint);
@@ -280,14 +284,14 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
             // Milliseconds drawing,  mWidth / 2 = Radius, the rest is converting the seconds in a 0-1 interval
             if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
-                canvas.drawCircle(mCenterX, mCenterY, (float) (((mWidth) / 2) * ((((mTime.minute * (60)) + mTime.second) * 0.027777778) / 100)), mGrayGrowingCirclePaint);
+                canvas.drawCircle(mCenterX, mCenterY, (float) (((mWidth) / 2) * ((((mCalendar.get(Calendar.MINUTE) * (60)) + mCalendar.get(Calendar.SECOND)) * 0.027777778) / 100)), mGrayGrowingCirclePaint);
             } else {
-                canvas.drawCircle(mCenterX, mCenterY, (float) (((mWidth) / 2) * ((((mTime.minute * (60)) + mTime.second) * 0.027777778) / 100)), mGrowingCirclePaint);
+                canvas.drawCircle(mCenterX, mCenterY, (float) (((mWidth) / 2) * ((((mCalendar.get(Calendar.MINUTE) * (60)) + mCalendar.get(Calendar.SECOND)) * 0.027777778) / 100)), mGrowingCirclePaint);
             }
 
 
             // Drawing the hour lines
-            for (int i = 1; i <= (mTime.hour % 12); ++i) {
+            for (int i = 1; i <= (mCalendar.get(Calendar.HOUR) % 12); ++i) {
                 canvas.save();
                 // A hour is 30 degree, i+6 is because it starts at 6, 23 is the shift because it doesn't start at the middle
                 canvas.rotate(((30) * (i + 6)), mCenterX, mCenterY);
@@ -321,10 +325,10 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             }
 
             // Drawing the leftover black part after the current hour
-            for (int i = 1; i <= ((11 - (mTime.hour % 12))); ++i) {
+            for (int i = 1; i <= ((11 - (mCalendar.get(Calendar.HOUR) % 12))); ++i) {
                 canvas.save();
 
-                canvas.rotate(((30) * ((mTime.hour % 12) + (i + 7))), mCenterX, mCenterY);
+                canvas.rotate(((30) * ((mCalendar.get(Calendar.HOUR) % 12) + (i + 7))), mCenterX, mCenterY);
 
                 canvas.drawPath(path, newTimeBgrPaint);
                 canvas.restore();
@@ -357,8 +361,9 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
-                mTime.clear(TimeZone.getDefault().getID());
-                mTime.setToNow();
+                mCalendar.setTimeZone(TimeZone.getDefault());
+                //mTime.clear(TimeZone.getDefault().getID());
+                //mTime.setToNow();
             } else {
                 unregisterReceiver();
             }
