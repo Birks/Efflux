@@ -28,8 +28,6 @@ import com.google.android.gms.wearable.Wearable;
 public class ConfigActivity extends Activity implements
         WearableListView.ClickListener, WearableListView.OnScrollListener {
 
-    private static final String TAG = "DigitalWatchFaceConfig";
-
     private GoogleApiClient mGoogleApiClient;
     private TextView mHeader;
 
@@ -41,6 +39,7 @@ public class ConfigActivity extends Activity implements
         mHeader = (TextView) findViewById(R.id.header);
         WearableListView listView = (WearableListView) findViewById(R.id.color_picker);
         BoxInsetLayout content = (BoxInsetLayout) findViewById(R.id.content);
+
         // BoxInsetLayout adds padding by default on round devices. Add some on square devices.
         content.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
             @Override
@@ -60,34 +59,8 @@ public class ConfigActivity extends Activity implements
         listView.addOnScrollListener(this);
 
         String[] colors = getResources().getStringArray(R.array.color_array);
-        listView.setAdapter(new ColorListAdapter(colors));
-
-//        mGoogleApiClient = new GoogleApiClient.Builder(this)
-//                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-//                    @Override
-//                    public void onConnected(Bundle connectionHint) {
-//                        if (Log.isLoggable(TAG, Log.DEBUG)) {
-//                            Log.d(TAG, "onConnected: " + connectionHint);
-//                        }
-//                    }
-//
-//                    @Override
-//                    public void onConnectionSuspended(int cause) {
-//                        if (Log.isLoggable(TAG, Log.DEBUG)) {
-//                            Log.d(TAG, "onConnectionSuspended: " + cause);
-//                        }
-//                    }
-//                })
-//                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
-//                    @Override
-//                    public void onConnectionFailed(ConnectionResult result) {
-//                        if (Log.isLoggable(TAG, Log.DEBUG)) {
-//                            Log.d(TAG, "onConnectionFailed: " + result);
-//                        }
-//                    }
-//                })
-//                .addApi(Wearable.API)
-//                .build();
+        String[] colornames = getResources().getStringArray(R.array.color_name_array);
+        listView.setAdapter(new ColorListAdapter(colors,colornames));
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
@@ -120,19 +93,15 @@ public class ConfigActivity extends Activity implements
     @Override // WearableListView.ClickListener
     public void onClick(WearableListView.ViewHolder viewHolder) {
         ColorItemViewHolder colorItemViewHolder = (ColorItemViewHolder) viewHolder;
-        //updateConfigDataItem(colorItemViewHolder.mColorItem.getColor());
         sendParamsAndFinish(colorItemViewHolder.mColorItem.getColor());
     }
 
-    // sends data through Google API
+    // Sends data through Google API
     private void sendParamsAndFinish(int backgroundColor) {
         PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/watch_face_config_efflux");
         putDataMapReq.getDataMap().putInt("time_color", backgroundColor);
         PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
-
-        Log.v("Efflux", String.valueOf(backgroundColor));
-
         finish();
     }
 
@@ -159,17 +128,13 @@ public class ConfigActivity extends Activity implements
     public void onCentralPositionChanged(int centralPosition) {
     }
 
-    private void updateConfigDataItem(final int backgroundColor) {
-        DataMap configKeysToOverwrite = new DataMap();
-        configKeysToOverwrite.putInt(DigitalWatchFaceUtil.KEY_BACKGROUND_COLOR,
-                backgroundColor);
-        Log.v("Efflux", String.valueOf(backgroundColor));
-    }
 
     private class ColorListAdapter extends WearableListView.Adapter {
         private final String[] mColors;
+        private final String [] mColorNames;
 
-        public ColorListAdapter(String[] colors) {
+        public ColorListAdapter(String[] colors,String[] colornames) {
+            mColorNames=colornames;
             mColors = colors;
         }
 
@@ -181,8 +146,11 @@ public class ConfigActivity extends Activity implements
         @Override
         public void onBindViewHolder(WearableListView.ViewHolder holder, int position) {
             ColorItemViewHolder colorItemViewHolder = (ColorItemViewHolder) holder;
-            String colorName = mColors[position];
-            colorItemViewHolder.mColorItem.setColor(colorName);
+
+            String color = mColors[position];
+            String colorName = mColorNames[position];
+
+            colorItemViewHolder.mColorItem.setColor(colorName,color);
 
             RecyclerView.LayoutParams layoutParams =
                     new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -294,9 +262,9 @@ public class ConfigActivity extends Activity implements
             }
         }
 
-        private void setColor(String colorName) {
+        private void setColor(String colorName,String color) {
             mLabel.setText(colorName);
-            mColor.setCircleColor(Color.parseColor(colorName));
+            mColor.setCircleColor(Color.parseColor(color));
         }
 
         private int getColor() {

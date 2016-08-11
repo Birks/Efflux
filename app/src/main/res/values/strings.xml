@@ -7,21 +7,47 @@
     <string name="change_color">Change color</string>
 
 
-    <string name="color_black">Black</string>
-    <string name="color_blue">Blue</string>
-    <string name="color_gray">Gray</string>
-    <string name="color_green">Green</string>
-    <string name="color_navy">Navy</string>
-    <string name="color_red">Red</string>
-    <string name="color_white">White</string>
+    <string name="color_gold">#FFC90E</string>
+    <string name="color_blue">#0001FF</string>
+    <string name="color_gray">#A9AAAA</string>
+    <string name="color_cyan">#00F5FE</string>
+    <string name="color_red">#FF0200</string>
+    <string name="color_green">#01FF01</string>
+    <string name="color_teal">#00828F</string>
+    <string name="color_orange">#FF8900</string>
+    <string name="color_white">#FEFEFE</string>
+    <string name="color_violet">#EF82EE</string>
+    <string name="color_black">#323232</string>
+
 
     <string-array name="color_array">
-        <item>@string/color_black</item>
+        <item>@string/color_gold</item>
         <item>@string/color_blue</item>
         <item>@string/color_gray</item>
-        <item>@string/color_green</item>
-        <item>@string/color_navy</item>
+        <item>@string/color_cyan</item>
         <item>@string/color_red</item>
+        <item>@string/color_green</item>
+        <item>@string/color_teal</item>
         <item>@string/color_white</item>
+        <item>@string/color_violet</item>
+        <item>@string/color_orange</item>
+        <item>@string/color_black</item>
     </string-array>
+
+
+    <string-array name="color_name_array">
+        <item>Gold</item>
+        <item>Blue</item>
+        <item>Gray</item>
+        <item>Cyan</item>
+        <item>Red</item>
+        <item>Green</item>
+        <item>Teal</item>
+        <item>White</item>
+        <item>Violet</item>
+        <item>Orange</item>
+        <item>Dark gray</item>
+    </string-array>
+
+
 </resources>

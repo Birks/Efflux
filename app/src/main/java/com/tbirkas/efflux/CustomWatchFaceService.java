@@ -19,14 +19,12 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
@@ -35,7 +33,6 @@ import com.google.android.gms.wearable.DataItemBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
-
 
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -132,7 +129,6 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         // Custom color codes
         private static final String GOLD = "#FFC90E";
         private static final String GRAY = "#C7C7C7";
-        private static final String RED = "#FF0000";
 
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
@@ -389,8 +385,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
                 // Update time zone in case it changed while we weren't visible.
                 mCalendar.setTimeZone(TimeZone.getDefault());
-                //mTime.clear(TimeZone.getDefault().getID());
-                //mTime.setToNow();
+
             } else {
                 unregisterReceiver();
             }
@@ -447,17 +442,14 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onConnectionSuspended(int i) {
-            //Log.v("Efflux", "conection suspended");
         }
 
 
         private void updateParamsForDataItem(DataItem item) {
-            //Log.v("Efflux", "updateParamsForDataItem");
             if ((item.getUri().getPath()).equals("/watch_face_config_efflux")) {
                 DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
                 if (dataMap.containsKey("time_color")) {
                     int tc = dataMap.getInt("time_color");
-                    //Log.v("Efflux", "Customwatchservice: " + tc);
                     newTimePaint.setColor(tc);
                     mGrowingCirclePaint.setColor(tc);
                     invalidate();
@@ -510,7 +502,6 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-            //Log.v("Efflux", "Connection Failed");
         }
     }
 }
