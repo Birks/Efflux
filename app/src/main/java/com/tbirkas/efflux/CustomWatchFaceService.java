@@ -16,10 +16,26 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
+
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataItemBuffer;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
+
 
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -42,7 +58,12 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         return new Engine();
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine implements
+            GoogleApiClient.ConnectionCallbacks,
+            GoogleApiClient.OnConnectionFailedListener {
+
+        private GoogleApiClient mGoogleApiClient;
+
 
         /* Handler to update the time once a second in interactive mode. */
         private final Handler mUpdateTimeHandler = new Handler() {
@@ -69,8 +90,6 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         private final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-//                mTime.clear(intent.getStringExtra("time-zone"));
-//                mTime.setToNow();
                 mCalendar.setTimeZone(TimeZone.getDefault());
                 invalidate();
             }
@@ -113,12 +132,12 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         // Custom color codes
         private static final String GOLD = "#FFC90E";
         private static final String GRAY = "#C7C7C7";
+        private static final String RED = "#FF0000";
 
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
 
         private Calendar mCalendar;
-
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -140,7 +159,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             mBackgroundPaint.setFilterBitmap(true);
 
 
-            // New red time
+            // New gold (default) time
             newTimePaint = new Paint();
             newTimePaint.setStrokeWidth(0);
             newTimePaint.setColor(Color.parseColor(GOLD));
@@ -168,7 +187,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
             // Properties of the growing filled circle
             mGrowingCirclePaint = new Paint();
-            mGrowingCirclePaint.setColor(Color.parseColor(GOLD)); // Gold
+            mGrowingCirclePaint.setColor(Color.parseColor(GOLD)); // Gold = default
             mGrowingCirclePaint.setStrokeWidth(0);
             mGrowingCirclePaint.setAntiAlias(true);
             mGrowingCirclePaint.setStrokeCap(Paint.Cap.ROUND);
@@ -176,7 +195,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
             // Ambient background circle
             mGrayGrowingCirclePaint = new Paint();
-            mGrayGrowingCirclePaint.setColor(Color.parseColor(GRAY)); // Gold
+            mGrayGrowingCirclePaint.setColor(Color.parseColor(GRAY));
             mGrayGrowingCirclePaint.setStrokeWidth(0);
             mGrayGrowingCirclePaint.setAntiAlias(false);
             mGrayGrowingCirclePaint.setStrokeCap(Paint.Cap.ROUND);
@@ -204,11 +223,19 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             //mTime = new Time();
             mCalendar = Calendar.getInstance();
 
+            mGoogleApiClient = new GoogleApiClient.Builder(CustomWatchFaceService.this)
+                    .addApi(Wearable.API)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .build();
+
+            mGoogleApiClient.connect();
         }
 
         @Override
         public void onDestroy() {
             mUpdateTimeHandler.removeMessages(R.id.message_update);
+            releaseGoogleApiClient();
             super.onDestroy();
         }
 
@@ -401,6 +428,78 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
+        // Google Api stuff
+        private void releaseGoogleApiClient() {
+            if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                Wearable.DataApi.removeListener(mGoogleApiClient,
+                        onDataChangedListener);
+                mGoogleApiClient.disconnect();
+            }
+        }
+
+        @Override
+        public void onConnected(Bundle bundle) {
+            Wearable.DataApi.addListener(mGoogleApiClient,
+                    onDataChangedListener);
+            Wearable.DataApi.getDataItems(mGoogleApiClient).
+                    setResultCallback(onConnectedResultCallback);
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+            //Log.v("Efflux", "conection suspended");
+        }
+
+
+        private void updateParamsForDataItem(DataItem item) {
+            //Log.v("Efflux", "updateParamsForDataItem");
+            if ((item.getUri().getPath()).equals("/watch_face_config_efflux")) {
+                DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                if (dataMap.containsKey("time_color")) {
+                    int tc = dataMap.getInt("time_color");
+                    //Log.v("Efflux", "Customwatchservice: " + tc);
+                    newTimePaint.setColor(tc);
+                    mGrowingCirclePaint.setColor(tc);
+                    invalidate();
+                }
+            }
+        }
+
+        private final DataApi.DataListener onDataChangedListener =
+                new DataApi.DataListener() {
+                    @Override
+                    public void onDataChanged(DataEventBuffer dataEvents) {
+                        for (DataEvent event : dataEvents) {
+                            if (event.getType() == DataEvent.TYPE_CHANGED) {
+                                DataItem item = event.getDataItem();
+                                updateParamsForDataItem(item);
+                            }
+                        }
+
+                        dataEvents.release();
+                        if (isVisible() && !isInAmbientMode()) {
+                            invalidate();
+                        }
+                    }
+                };
+
+        private final ResultCallback<DataItemBuffer>
+                onConnectedResultCallback =
+                new ResultCallback<DataItemBuffer>() {
+                    @Override
+                    public void onResult(DataItemBuffer dataItems) {
+                        for (DataItem item : dataItems) {
+                            updateParamsForDataItem(item);
+                        }
+
+                        dataItems.release();
+                        if (isVisible() && !isInAmbientMode()) {
+                            invalidate();
+                        }
+
+                    }
+                };
+
         /**
          * Returns whether the {@link #mUpdateTimeHandler} timer should be running. The timer
          * should only run when we're visible and in interactive mode.
@@ -409,5 +508,9 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             return isVisible() && !isInAmbientMode();
         }
 
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+            //Log.v("Efflux", "Connection Failed");
+        }
     }
 }
