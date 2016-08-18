@@ -103,11 +103,13 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
         private Paint newTimePaint;
         private Paint newTimeAmbientPaint;
         private Paint newTimeBgrPaint;
+        private Paint newTimeBgrAmbientPaint;
         private Paint mBackgroundPaint;
         private Paint mGrowingCirclePaint;
         private Paint mGrayGrowingCirclePaint;
         private Paint mQuarterPaint;
         private Paint mHalfPaint;
+        private Paint mBlackBorder;
 
         private boolean mAmbient;
 
@@ -177,6 +179,11 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             newTimeBgrPaint.setStyle(Paint.Style.FILL_AND_STROKE);
             newTimeBgrPaint.setAntiAlias(true);
 
+            newTimeBgrAmbientPaint = new Paint();
+            newTimeBgrAmbientPaint.setStrokeWidth(0);
+            newTimeBgrAmbientPaint.setColor(Color.BLACK);
+            newTimeBgrAmbientPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            newTimeBgrAmbientPaint.setAntiAlias(false);
 
             // Decoding the png images to bitmap object
             mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.custom_background);
@@ -197,6 +204,14 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             mGrayGrowingCirclePaint.setStrokeCap(Paint.Cap.ROUND);
             mGrayGrowingCirclePaint.setStyle(Paint.Style.FILL_AND_STROKE);
 
+            // Border for square watches
+            mBlackBorder = new Paint();
+            mBlackBorder.setColor(Color.BLACK);
+            mBlackBorder.setStrokeWidth(2);
+            mBlackBorder.setAntiAlias(false);
+            mBlackBorder.setStrokeCap(Paint.Cap.ROUND);
+            mBlackBorder.setStyle(Paint.Style.STROKE);
+
             // Properties of the dashed 15 and 45 min circles
             mQuarterPaint = new Paint();
             mQuarterPaint.setColor(Color.WHITE);
@@ -216,9 +231,9 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             mHalfPaint.setShadowLayer(SHADOW_RADIUS, 0, 0, Color.BLACK);
             mHalfPaint.setStyle(Paint.Style.STROKE);
 
-            //mTime = new Time();
             mCalendar = Calendar.getInstance();
 
+            // Initalizing and starting Google API
             mGoogleApiClient = new GoogleApiClient.Builder(CustomWatchFaceService.this)
                     .addApi(Wearable.API)
                     .addConnectionCallbacks(this)
@@ -276,8 +291,8 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
             // setting the Path
 
             a = new Point((int) mCenterX, (int) mCenterY);
-            b = new Point((mWidth / 2) - 27, mHeight);
-            c = new Point((mWidth / 2) + 27, mHeight);
+            b = new Point((mWidth / 2) - (mWidth / 12), mHeight);
+            c = new Point((mWidth / 2) + (mWidth / 12), mHeight);
 
             path = new Path();
             path.setFillType(Path.FillType.EVEN_ODD);
@@ -338,7 +353,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
                 // Ambient mode real deal
                 if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
-                    canvas.drawPath(path, newTimeBgrPaint);
+                    canvas.drawPath(path, newTimeBgrAmbientPaint);
                 } else {
                     canvas.drawPath(path, newTimeBgrPaint);
                 }
@@ -358,6 +373,8 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
 
             }
 
+            // Drawing the black border for square screens
+            canvas.drawCircle(mCenterX, mCenterY, (mWidth / 2) + 2, mBlackBorder);
 
             // Draw the dashed circles
             canvas.save();
