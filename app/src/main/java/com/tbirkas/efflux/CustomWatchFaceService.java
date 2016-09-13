@@ -335,7 +335,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
                 canvas.rotate(((30) * (i + 6)), mCenterX, mCenterY);
 
                 // Ambient mode real deal
-                if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
+                if (mAmbient || mLowBitAmbient) {
                     canvas.drawPath(path, newTimeAmbientPaint);
                 } else {
                     canvas.drawPath(path, newTimePaint);
@@ -352,7 +352,7 @@ public class CustomWatchFaceService extends CanvasWatchFaceService {
                 canvas.rotate(((30) * (i + 6)) + 15, mCenterX, mCenterY);
 
                 // Ambient mode real deal
-                if (mAmbient || (mLowBitAmbient || mBurnInProtection)) {
+                if (mAmbient || mLowBitAmbient) {
                     canvas.drawPath(path, newTimeBgrAmbientPaint);
                 } else {
                     canvas.drawPath(path, newTimeBgrPaint);
